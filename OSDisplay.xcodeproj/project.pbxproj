@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		16FB97C21E5FED350001A573 /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = 16FB97C11E5FED350001A573 /* Constants.m */; };
 		4904AA2E1C4E3C9300541F75 /* brightness.png in Resources */ = {isa = PBXBuildFile; fileRef = 4904AA291C4E3C9300541F75 /* brightness.png */; };
 		4904AA2F1C4E3C9300541F75 /* brightness@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4904AA2A1C4E3C9300541F75 /* brightness@2x.png */; };
 		4904AA301C4E3C9300541F75 /* brightness@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4904AA2B1C4E3C9300541F75 /* brightness@3x.png */; };
@@ -52,6 +53,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		16FB97C01E5FED350001A573 /* Constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
+		16FB97C11E5FED350001A573 /* Constants.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Constants.m; sourceTree = "<group>"; };
 		4904AA291C4E3C9300541F75 /* brightness.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = brightness.png; sourceTree = "<group>"; };
 		4904AA2A1C4E3C9300541F75 /* brightness@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "brightness@2x.png"; sourceTree = "<group>"; };
 		4904AA2B1C4E3C9300541F75 /* brightness@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "brightness@3x.png"; sourceTree = "<group>"; };
@@ -163,6 +166,8 @@
 				490B502B1C4BF65700510104 /* AppDelegate.h */,
 				490B502C1C4BF65700510104 /* AppDelegate.m */,
 				490B50311C4BF65700510104 /* ViewController.h */,
+				16FB97C01E5FED350001A573 /* Constants.h */,
+				16FB97C11E5FED350001A573 /* Constants.m */,
 				490B50321C4BF65700510104 /* ViewController.m */,
 				490B50341C4BF65700510104 /* Assets.xcassets */,
 				490B50361C4BF65700510104 /* Main.storyboard */,
@@ -349,6 +354,7 @@
 				490B50331C4BF65700510104 /* ViewController.m in Sources */,
 				490B50301C4BF65700510104 /* main.m in Sources */,
 				490B502D1C4BF65700510104 /* AppDelegate.m in Sources */,
+				16FB97C21E5FED350001A573 /* Constants.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -7,6 +7,7 @@
 //
 
 #import "ViewController.h"
+#import "Constants.h"
 
 #include <Foundation/Foundation.h>
 #import <DiscRecording/DiscRecording.h>
@@ -20,6 +21,7 @@ BOOL darkMode;
     BOOL showMessage;
     BOOL showImage;
     BOOL showLevel;
+    BOOL verbose;
     float exitDelay;
 }
 
@@ -27,7 +29,7 @@ BOOL darkMode;
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-
+    
     // Do any additional setup after loading the view.
     
     NSArray *args = [[NSProcessInfo processInfo] arguments];
@@ -38,7 +40,8 @@ BOOL darkMode;
     NSInteger osdLevel = -1;
     NSInteger argc = [args count];
     NSString *tray = @"";
-    exitDelay = 2.5;
+    exitDelay = DEFAULT_EXIT_DELAY;
+    verbose = NO;
     
     // Commandline arguments
     for (int i=1; i<argc; i++)
@@ -63,7 +66,7 @@ BOOL darkMode;
             showLevel = NO;
             if (osdLevelString != nil) {
                 osdLevel = [osdLevelString integerValue];
-                if (osdLevel >= 0 && osdLevel <= 100) {
+                if (osdLevel >= MIN_OSD_LEVEL && osdLevel <= MAX_OSD_LEVEL) {
                     showLevel = YES;
                     showMessage = NO;
                 }
@@ -86,7 +89,7 @@ BOOL darkMode;
             i++;
             if (i >= argc) break;
             exitDelay = [args[i] floatValue];
-            if (exitDelay < 1.0 || exitDelay > 60.0) exitDelay = 3.0;
+            if (exitDelay < MIN_EXIT_DELAY || exitDelay > MAX_EXIT_DELAY) exitDelay = DEFAULT_EXIT_DELAY;
         }
         
         else if ([args[i] isEqualToString:@"-tray"]) {
@@ -94,15 +97,21 @@ BOOL darkMode;
             if (i >= argc) break;
             tray = args[i];
         }
-/*
-        else if ([args[i] isEqualToString:@"-darkMode"]) {
-            darkMode = YES;
-        }
         
-        else if ([args[i] isEqualToString:@"-lightMode"]) {
-            darkMode = NO;
+        else if ([args[i] isEqualToString:@"-v"]) {
+            i++;
+            if (i >= argc) break;
+            verbose = YES;
         }
-*/        
+        /*
+         else if ([args[i] isEqualToString:@"-darkMode"]) {
+         darkMode = YES;
+         }
+         
+         else if ([args[i] isEqualToString:@"-lightMode"]) {
+         darkMode = NO;
+         }
+         */
         else if ([args[i] isEqualToString:@"-h"]) {
             HelpLog(@"-------------------------------------");
             HelpLog(@"OSDisplay 0.1");
@@ -113,6 +122,7 @@ BOOL darkMode;
             HelpLog(@"  -l\tvalue (0-100 @5)");
             HelpLog(@"  -d\tdelay (1.0-60.0 seconds)");
             HelpLog(@"  -e\t(open/eject external cd/dvd writer)");
+            HelpLog(@"  -v\tenable verbose output");
             HelpLog(@"  -h\t(show this help text)");
             HelpLog(@"-------------------------------------");
             HelpLog(@"Images become resized (max x150)");
@@ -124,7 +134,7 @@ BOOL darkMode;
             HelpLog(@"  .pdf");
             HelpLog(@"  .tiff");
             HelpLog(@"\n");
-            HelpLog(@"Build-In images can be used with:");
+            HelpLog(@"Built-In images can be used with:");
             HelpLog(@"  -i brightness");
             HelpLog(@"  -i contrast");
             HelpLog(@"  -i eject");
@@ -153,25 +163,25 @@ BOOL darkMode;
     if ([[NSRunningApplication runningApplicationsWithBundleIdentifier:[[NSBundle mainBundle] bundleIdentifier]] count] > 1) {
         NSDictionary *info = [NSDictionary dictionaryWithObjectsAndKeys: osdImagePath, @"image", osdMessage, @"message", osdLevelString, @"level", nil];
         [center postNotificationName:@"de.zulu-entertainment.OSDisplay.LaunchCall" object:nil userInfo:info];
-        DebugLog(@"Second instance - terminate!");
+        if (verbose) DebugLog(@"Second instance - terminate!");
         [NSApp terminate:nil];
     }
     else {
         [center addObserver:self selector:@selector(receiveNotification:) name:@"de.zulu-entertainment.OSDisplay.LaunchCall" object:nil];
-        DebugLog(@"First instance run!");
-
+        if (verbose) DebugLog(@"First instance run!");
+        
         if (darkMode) {
-            tintColor = [NSColor colorWithWhite:1.0 alpha:0.8];
+            tintColor = [NSColor colorWithWhite:WHITE alpha:DARK_ALPHA];
         }
         else {
-            tintColor = [NSColor colorWithRed:0.2 green:0.2 blue:0.2 alpha:0.8];
+            tintColor = [NSColor colorWithRed:RED green:GRN blue:BLU alpha:ALPHA];
         }
         
         // tint the default image
         self.OsdImageView.image = [[NSImage imageNamed:@"monster"] tintImageWithColor:tintColor];
         
         // configure the font size and color
-        self.OsdTextField.font = [NSFont systemFontOfSize:18.0 weight:0.36];
+        self.OsdTextField.font = [NSFont systemFontOfSize:FONT_SIZE weight:FONT_WEIGHT];
         self.OsdTextField.textColor = tintColor;
         
         if (showMessage || showLevel) {
@@ -179,7 +189,7 @@ BOOL darkMode;
         } else {
             self.imageTopSpace.constant = (self.view.bounds.size.height-self.OsdImageView.bounds.size.height)/2;
         }
-
+        
         if (showImage) {
             NSImage *osdImage = nil;
             self.textBottomSpace.constant = 10.0;
@@ -189,7 +199,7 @@ BOOL darkMode;
             } else {
                 if ([[NSFileManager defaultManager] fileExistsAtPath:osdImagePath]) {
                     osdImage = [[[NSImage alloc] initByReferencingFile:osdImagePath] tintImageWithColor:tintColor];
-                    DebugLog(@"Found external image '%@'", osdImagePath);
+                    if (verbose) DebugLog(@"Found external image '%@'", osdImagePath);
                 } else {
                     osdImage = [[NSImage imageNamed:@"information"] tintImageWithColor:tintColor];
                     osdMessage = @"Image not found!";
@@ -220,34 +230,34 @@ BOOL darkMode;
         
         // show the message in any way
         self.OsdTextField.stringValue = osdMessage;
-
+        
         if (tray != nil && ![tray isEqualToString:@""]) {
             dispatch_queue_t taskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
             dispatch_async(taskQueue, ^{
                 @try {
-                    //DebugLog(@"Scanning for optical devices... '%@'", [DRDevice devices] );
+                    //if (verbose) DebugLog(@"Scanning for optical devices... '%@'", [DRDevice devices] );
                     if ([[DRDevice devices] count] > 0) {
                         DRDevice *device = [DRDevice devices][0];
-                        DebugLog(@"Found: '%@'", [device displayName]);
+                        if (verbose) DebugLog(@"Found: '%@'", [device displayName]);
                         if ([tray isEqualToString:@"auto"]) {
                             NSDictionary *deviceStatus = [device status];
                             //BOOL deviceIsBusy = [[deviceStatus objectForKey:DRDeviceIsBusyKey] boolValue];
                             BOOL deviceIsOpen = [[deviceStatus objectForKey:DRDeviceIsTrayOpenKey] boolValue];
                             if (deviceIsOpen) {
-                                DebugLog(@"Tray is open, sending close...");
+                                if (verbose) DebugLog(@"Tray is open, sending close...");
                                 [device closeTray];
                             } else {
-                                DebugLog(@"Tray is closed, sending eject...");
+                                if (verbose) DebugLog(@"Tray is closed, sending eject...");
                                 [device ejectMedia];
                             }
                         } else if ([tray isEqualToString:@"close"]) {
-                            DebugLog(@"Sending close...");
+                            if (verbose) DebugLog(@"Sending close...");
                             [device closeTray];
                         } else if ([tray isEqualToString:@"open"]) {
-                            DebugLog(@"Sending open...");
+                            if (verbose) DebugLog(@"Sending open...");
                             [device openTray];
                         } else if ([tray isEqualToString:@"eject"]) {
-                            DebugLog(@"Sending eject...");
+                            if (verbose) DebugLog(@"Sending eject...");
                             [device ejectMedia];
                         } else {
                             ErrorLog(@"Not supported argument: %@", tray);
@@ -262,16 +272,16 @@ BOOL darkMode;
                         self.OsdTextField.stringValue = @"No Drive!";
                     }
                 }
-
+                
                 @catch (NSException *exception) {
                     NSLog(@"Problem Running Task: %@", [exception description]);
                 }
-
+                
                 @finally {
-
+                    
                 }
             });
-
+            
         }
         
         [self createExitTimer];
@@ -296,19 +306,19 @@ BOOL darkMode;
 - (void)timeout
 {
     [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
-        DebugLog(@"So long, ...");
+        if (verbose) DebugLog(@"So long, ...");
         context.duration = 0.5f;
-/*
-        for (NSView *sub in self.view.subviews) {
-            sub.animator.alphaValue = 0.0f;
-            DebugLog(@"%@" , sub);
-        }
-*/
+        /*
+         for (NSView *sub in self.view.subviews) {
+         sub.animator.alphaValue = 0.0f;
+         if (verbose) DebugLog(@"%@" , sub);
+         }
+         */
         self.view.animator.alphaValue = 0.0f;
-
-
+        
+        
     } completionHandler:^{
-        DebugLog(@"and thanks for all the fish!");
+        if (verbose) DebugLog(@"and thanks for all the fish!");
         [[NSDistributedNotificationCenter defaultCenter] removeObserver:self];
         [NSApp terminate:self];
     }];
@@ -317,11 +327,11 @@ BOOL darkMode;
 
 - (void)receiveNotification:(NSNotification *)notification
 {
-    DebugLog(@"Receive notification '%@'\n %@ %@ %@",
-          [notification name],
-          [notification userInfo][@"image"],
-          [notification userInfo][@"message"],
-          [notification userInfo][@"level"]);
+    if (verbose) DebugLog(@"Receive notification '%@'\n %@ %@ %@",
+                          [notification name],
+                          [notification userInfo][@"image"],
+                          [notification userInfo][@"message"],
+                          [notification userInfo][@"level"]);
     
     if ([[notification name] isEqualToString:@"de.zulu-entertainment.OSDisplay.LaunchCall"])
     {
@@ -337,7 +347,7 @@ BOOL darkMode;
             osdImagePath = @"";
             showImage = NO;
         }
-
+        
         NSString *osdMessage = [notification userInfo][@"message"];
         if (osdMessage != nil) {
             showMessage = YES;
@@ -354,7 +364,7 @@ BOOL darkMode;
         showLevel = NO;
         if (osdLevelString != nil) {
             osdLevel = [osdLevelString integerValue];
-            if (osdLevel >= 0 && osdLevel <= 100) {
+            if (osdLevel >= MIN_OSD_LEVEL && osdLevel <= MAX_OSD_LEVEL) {
                 showLevel = YES;
                 showMessage = NO;
             }
@@ -375,7 +385,7 @@ BOOL darkMode;
                 osdImage = [[NSImage imageNamed:osdImagePath] tintImageWithColor:tintColor];
             } else {
                 if ([[NSFileManager defaultManager] fileExistsAtPath:osdImagePath]) {
-                    DebugLog(@"Found external image '%@'", osdImagePath);
+                    if (verbose) DebugLog(@"Found external image '%@'", osdImagePath);
                     osdImage = [[[NSImage alloc] initByReferencingFile:osdImagePath] tintImageWithColor:tintColor];
                 } else {
                     osdImage = [[NSImage imageNamed:@"information"] tintImageWithColor:tintColor];
@@ -429,7 +439,7 @@ BOOL darkMode;
 
 - (void)dealloc
 {
-    DebugLog(@"App dealloc!");
+    if (verbose) DebugLog(@"App dealloc!");
     [[NSDistributedNotificationCenter defaultCenter] removeObserver:self];
 }
 
@@ -474,10 +484,10 @@ BOOL darkMode;
             darkMode = NO;
         } else { // use system defaults
             /*
-            NSString *darkModeString = (__bridge NSString *)(CFPreferencesCopyValue((CFStringRef)@"AppleInterfaceStyle",
-                                                                                    kCFPreferencesAnyApplication,
-                                                                                    kCFPreferencesCurrentUser,
-                                                                                    kCFPreferencesCurrentHost));
+             NSString *darkModeString = (__bridge NSString *)(CFPreferencesCopyValue((CFStringRef)@"AppleInterfaceStyle",
+             kCFPreferencesAnyApplication,
+             kCFPreferencesCurrentUser,
+             kCFPreferencesCurrentHost));
              */
             NSString *darkModeString =  [[NSUserDefaults standardUserDefaults] stringForKey:@"AppleInterfaceStyle"];
             if ([darkModeString isEqualToString:@"Dark"]) {
@@ -533,16 +543,16 @@ BOOL darkMode;
 - (void)drawWithFrame:(NSRect)cellFrame inView:(NSView*)controlView
 {
     // Draw the background
-    [[NSColor colorWithRed:0.2 green:0.2 blue:0.2 alpha:0.8] set];
+    [[NSColor colorWithRed:RED green:GRN blue:BLU alpha:ALPHA] set];
     NSRectFill(NSInsetRect(cellFrame, 0, 5));
     cellFrame = NSInsetRect(cellFrame, 1, 6);
     
     // Draw the segments
-    NSColor *fillColor = [NSColor colorWithDeviceWhite:1.0 alpha:0.8];
+    NSColor *fillColor = [NSColor colorWithDeviceWhite:WHITE alpha:DARK_ALPHA];
     double val = ((self.floatValue - self.minValue) / (self.maxValue - self.minValue) * (self.maxValue - self.minValue) / 100);
     int segments = (int)(self.maxValue - self.minValue);
     float step = cellFrame.size.width / segments;	// width of one segment
-
+    
     int ifill = val * segments + 0.5;
     for(int i=0; i<segments; i++)
     {
@@ -567,7 +577,7 @@ BOOL darkMode;
 
 @implementation NSImage (osd)
 
-/* 
+/*
  Create a drawing mask for the visual effect view
  */
 - (NSImage *)_cornerMask
